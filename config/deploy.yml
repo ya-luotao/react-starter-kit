@@ -1,8 +1,8 @@
 # Name of your application. Used to uniquely configure containers.
-service: react_starter_kit
+service: dayone_kit
 
 # Name of the container image (use your-user/app-name on external registries).
-image: react_starter_kit
+image: dayone_kit
 
 # Deploy to these servers.
 servers:
@@ -49,6 +49,7 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    - DATABASE_PASSWORD
   clear:
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
@@ -64,9 +65,15 @@ env:
     # Set number of cores available to the application on each server (default: 1).
     # WEB_CONCURRENCY: 2
 
-    # Match this to any external database server to configure Active Record correctly
-    # Use react_starter_kit-db for a db accessory server on same machine via local kamal docker network.
-    # DB_HOST: 192.168.0.2
+    # PostgreSQL Database Configuration
+    # Point to your PostgreSQL server (can be an accessory, external server, or managed database)
+    DATABASE_HOST: 192.168.0.1
+    DATABASE_PORT: 5432
+    DATABASE_USERNAME: dayone_kit
+    DATABASE_NAME: dayone_kit_production
+    CACHE_DATABASE_NAME: dayone_kit_cache_production
+    QUEUE_DATABASE_NAME: dayone_kit_queue_production
+    CABLE_DATABASE_NAME: dayone_kit_cable_production
 
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
@@ -80,10 +87,10 @@ aliases:
   dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
 
 
-# Use a persistent storage volume for sqlite database files and local Active Storage files.
+# Use a persistent storage volume for local Active Storage files.
 # Recommended to change this to a mounted volume path that is backed up off server.
 volumes:
-  - "react_starter_kit_storage:/rails/storage"
+  - "dayone_kit_storage:/rails/storage"
 
 
 # Bridge fingerprinted assets, like JS and CSS, between versions to avoid
@@ -99,7 +106,7 @@ builder:
   # dockerfile: Dockerfile-ssr
   cache:
     type: registry
-    image: your-user/react_starter_kit-build-cache
+    image: your-user/dayone_kit-build-cache
     options: mode=max
 
   # # Build image via remote server (useful for faster amd64 builds on arm64 computers)
@@ -117,22 +124,19 @@ builder:
 #   user: app
 
 # Use accessory services (secrets come from .kamal/secrets).
-# accessories:
-#   db:
-#     image: mysql:8.0
-#     host: 192.168.0.2
-#     # Change to 3306 to expose port to the world instead of just local network.
-#     port: "127.0.0.1:3306:3306"
-#     env:
-#       clear:
-#         MYSQL_ROOT_HOST: '%'
-#       secret:
-#         - MYSQL_ROOT_PASSWORD
-#     files:
-#       - config/mysql/production.cnf:/etc/mysql/my.cnf
-#       - db/production.sql:/docker-entrypoint-initdb.d/setup.sql
-#     directories:
-#       - data:/var/lib/mysql
+accessories:
+  db:
+    image: postgres:17
+    host: 192.168.0.1
+    port: "127.0.0.1:5432:5432"
+    env:
+      clear:
+        POSTGRES_USER: dayone_kit
+        POSTGRES_DB: dayone_kit_production
+      secret:
+        - DATABASE_PASSWORD
+    directories:
+      - data:/var/lib/postgresql/data
 #   redis:
 #     image: valkey/valkey:8
 #     host: 192.168.0.2
